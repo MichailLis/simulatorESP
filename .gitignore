@@ -1,0 +1,35 @@
+# Ignore PRD document
+ESP32-Simulator-PRD.md
+
+# Dependency directories
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.npm
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build/packaging files
+*.tgz
+*.gz
+*.zip
+dist/
+coverage/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo 
+
+# Logs
+logs/
+*.log 

@@ -1,22 +1,44 @@
 {
   "name": "node-red-contrib-esp32-simulator",
   "version": "0.1.0",
-  "description": "A Node-RED node to simulate ESP32 device with MQTT communication",
-  "author": "Your Name",
+  "description": "Нода Node-RED для эмуляции устройства ESP32 с коммуникацией через MQTT",
+  "author": "ESP32 Simulator Contributors",
   "license": "MIT",
   "keywords": [
     "node-red",
     "esp32",
     "simulator",
     "mqtt",
-    "iot"
+    "iot",
+    "rfid",
+    "bluetooth",
+    "led",
+    "relay"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/node-red-contrib-esp32-simulator"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/node-red-contrib-esp32-simulator/issues"
+  },
+  "homepage": "https://github.com/yourusername/node-red-contrib-esp32-simulator#readme",
   "node-red": {
     "nodes": {
-      "esp32-simulator": "esp32-simulator.js"
-    }
+      "esp32-simulator": "src/esp32-simulator.js"
+    },
+    "version": ">=1.0.0"
+  },
+  "engines": {
+    "node": ">=12.0.0"
   },
   "dependencies": {
     "mqtt": "^4.3.7"
+  },
+  "devDependencies": {
+    "eslint": "^8.42.0"
+  },
+  "scripts": {
+    "lint": "eslint src/**/*.js"
   }
 } 

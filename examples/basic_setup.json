@@ -1,0 +1,98 @@
+[
+    {
+        "id": "f6f2187d.f17ca8",
+        "type": "esp32-simulator",
+        "name": "ESP32 RFID",
+        "location": "Office",
+        "deviceType": "RFIDRelay",
+        "deviceId": "UnitA1",
+        "mqttServer": "5b17cb5c.8dbb44",
+        "generateRandomEvents": true,
+        "rfidEnabled": true,
+        "rfidAutoGenerate": true,
+        "rfidInterval": "30",
+        "ringLedsEnabled": true,
+        "externalLedsEnabled": false,
+        "relaysEnabled": true,
+        "inputsEnabled": true,
+        "inputAutoGenerate": true,
+        "inputInterval": "60",
+        "bluetoothEnabled": false,
+        "x": 340,
+        "y": 220,
+        "wires": [
+            [
+                "c1e33c02.2b718"
+            ]
+        ]
+    },
+    {
+        "id": "5b17cb5c.8dbb44",
+        "type": "mqtt-broker",
+        "name": "Local Broker",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": false,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "c1e33c02.2b718",
+        "type": "debug",
+        "name": "Events",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 510,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "6e0d45e7.a4fbcc",
+        "type": "mqtt in",
+        "name": "Listen RFID Events",
+        "topic": "tele/Office/RFIDRelay/UnitA1/rfid/tag",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "5b17cb5c.8dbb44",
+        "x": 370,
+        "y": 320,
+        "wires": [
+            [
+                "e0766458.d8e1b8"
+            ]
+        ]
+    },
+    {
+        "id": "e0766458.d8e1b8",
+        "type": "debug",
+        "name": "RFID Tags",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 570,
+        "y": 320,
+        "wires": []
+    }
+] 
