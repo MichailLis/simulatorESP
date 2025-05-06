@@ -1,0 +1,276 @@
+Документация: Система команд MQTT для многофункционального сенсора на ESP32 
+Версия: 1.1 Дата: 2024-04-26 Автор: [Укажите автора] 
+
+Оглавление 
+1. 
+Введение 
+
+2. 
+Термины и определения 
+
+3. 
+Архитектура топиков MQTT 
+
+4. 
+Общие соглашения 
+
+5. 
+Спецификация команд и событий 
+
+6. 
+Примеры Payload 
+
+7. 
+Рекомендации по реализации 
+
+8. 
+Таблица команд 
+
+9. 
+Контакты 
+
+
+1. Введение 
+Данный документ описывает структуру команд, событий и обмена данными для многофункционального устройства на базе ESP32, взаимодействующего по протоколу MQTT. Устройство поддерживает: 
+
+Считывание
+ RFID меток (13.56 MHz) 
+
+
+Адресную
+ светодиодную индикацию (кольцо, ~24 LED) 
+
+
+Внешнюю
+ адресную светодиодную ленту 
+
+
+
+Два
+ силовых релейных выхода 
+
+
+Два
+ цифровых входа 
+
+
+
+Wi-Fi и Bluetooth Питание от 5V, 12V и аккумулятора 3.7V 
+
+
+Свободные GPIO для расширения 
+
+2. Термины и определения 
+Термин Описание 
+MQTT  Легковесный протокол обмена сообщениями publish/subscribe  
+Payload  Содержимое сообщения (обычно JSON или текст)  
+Topic  Иерархический путь сообщения в MQTT  
+QoS  Уровень качества доставки сообщения (Quality of Service)  
+Retain  Флаг сохранения последнего сообщения в брокере  
+NVS  Энергонезависимая память ESP32  
+Логическое/физическое расположение устройства  
+<device_type>  Тип устройства (например, RFIDRelay)  
+<device_id>  Уникальный идентификатор устройства  
+
+
+3. Архитектура топиков MQTT 
+Все топики строятся по шаблону: 
+
+Сегменты топика: prefix — тип сообщения: 
+
+cmnd/ — команды устройству 
+
+stat/ — статусы/ответы от устройства 
+
+tele/ — телеметрия и события 
+
+— расположение (например, Floor1) 
+
+<device_type> — тип устройства (например, RFIDRelay) 
+
+<device_id> — уникальный ID (например, UnitA5) 
+
+command_path — путь функции (например, relay/1/set) 
+
+4. Общие соглашения 
+
+Подписка: Устройство подписывается на: 
+cmnd/<location>/<device_type>/<device_id>/# 
+
+Публикация: Устройство публикует в: stat/<location>/<device_type>/<device_id>/... и tele/<location>/<device_type>/<device_id>/... 
+
+Конфигурируемость: <location>, <device_type>, <device_id> — настраиваемы, сохраняются в NVS. Payload: 
+
+
+По умолчанию — JSON. 
+
+Для
+ простых команд — текст (ON, OFF, TOGGLE). 
+
+
+Все
+ строки в JSON — в двойных кавычках. 
+
+
+
+Timestamp: Используйте Unix timestamp (миллисекунды). 
+
+QoS: Рекомендуется QoS 1 для команд и важных статусов. 
+
+Retain: Используйте для stat/.../status и stat/.../config. 
+
+
+5. Спецификация команд и событий 
+5.1 RFID (Считыватель меток) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Считана метка tele tele/<L>/<T>/<D>/rfid/tag { "tag": "UID", "timestamp": 1678886400123 } 
+Запрос последней метки cmnd cmnd/<L>/<T>/<D>/rfid/last/get (пустой) 
+Статус последней метки stat stat/<L>/<T>/<D>/rfid/last { "tag": "UID", "timestamp": ... } или null 
+
+5.2 LED (Кольцо и внешние) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Установить цвет/яркость cmnd cmnd/<L>/<T>/<D>/led/ring/set { "num":4, "color":[0,255,0], "br":128 } 
+Включить паттерн cmnd cmnd/<L>/<T>/<D>/led/ring/pattern { "name":"rainbow", ... } 
+Запрос состояния cmnd cmnd/<L>/<T>/<D>/led/ring/get (пустой) 
+Статус состояния stat stat/<L>/<T>/<D>/led/ring/state { "mode":"pattern", ... } 
+... ... ... ... 
+
+5.3 Реле 
+Событие/Действие Тип топика Топик Payload/Пример 
+Управление реле (1шт) cmnd cmnd/<L>/<T>/<D>/relay/1/set ON, OFF, TOGGLE 
+Управление группой cmnd cmnd/<L>/<T>/<D>/relay/set { "relay1":"ON", "relay2":"OFF" } 
+PulseTime для реле cmnd cmnd/<L>/<T>/<D>/relay/1/pulsetime 1000 (ms) 
+Запрос состояния cmnd cmnd/<L>/<T>/<D>/relay/get (пустой) 
+Статус реле stat stat/<L>/<T>/<D>/relay { "relay1":{...}, "relay2":{...} } 
+5.4 Входы (Input) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Изменение входа tele tele/<L>/<T>/<D>/input { "input1": { "state": 1, "timestamp": ... }} 
+Запрос состояния cmnd cmnd/<L>/<T>/<D>/input/get (пустой) 
+
+Событие/Действие Тип топика Топик Payload/Пример 
+Статус входов stat stat/<L>/<T>/<D>/input { "input1": { "state": 1 }, ... } 
+Настроить вход cmnd cmnd/<L>/<T>/<D>/input/1/config { "mode": "INPUT_PULLUP", ... } 
+... ... ... ... 
+
+
+5.5 Питание (Power) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Телеметрия питания tele tele/<L>/<T>/<D>/power { "source": "battery", ... } 
+
+5.6 Система (System) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Запрос всего статуса cmnd cmnd/<L>/<T>/<D>/status (пустой) 
+Полный статус stat stat/<L>/<T>/<D>/status См. пример ниже 
+Перезагрузка cmnd cmnd/<L>/<T>/<D>/reboot (пустой) 
+... ... ... ... 
+
+
+5.7 Конфигурирование (Config) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Установить конфиг cmnd cmnd/<L>/<T>/<D>/config См. пример ниже 
+Запросить конфиг cmnd cmnd/<L>/<T>/<D>/config/get (пустой) 
+Статус конфига stat stat/<L>/<T>/<D>/config ...без паролей... 
+
+5.8 GPIO 
+Событие/Действие Тип топика Топик Payload/Пример 
+Настроить режим GPIO cmnd cmnd/<L>/<T>/<D>/gpio/5/mode { "mode": "OUTPUT" } 
+Управление состоянием cmnd cmnd/<L>/<T>/<D>/gpio/5/set 1, 0, TOGGLE 
+Запрос состояния cmnd cmnd/<L>/<T>/<D>/gpio/5/get (пустой) 
+Статус GPIO stat stat/<L>/<T>/<D>/gpio/5 { "state": 1 } 
+Событие входа на GPIO tele tele/<L>/<T>/<D>/gpio/5 { "state": 0, "timestamp": ... } 
+5.9 Bluetooth (BT) 
+Событие/Действие Тип топика Топик Payload/Пример 
+Сканирование BLE cmnd cmnd/<L>/<T>/<D>/bt/scan { "duration_ms": 10000 } 
+Статус сканирования stat stat/<L>/<T>/<D>/bt/status { "scanning": true } 
+Обнаружено BLE-устр. tele tele/<L>/<T>/<D>/bt/device { "mac": "...", "rssi": -70, ... } 
+6. 
+Примеры Payload 
+
+7. 
+Рекомендации по реализации 
+
+
+Используйте
+ надежную библиотеку для парсинга JSON (например, ArduinoJson) 
+
+
+Сохраняйте
+ конфигурацию в NVS 
+
+
+Используйте
+ асинхронный код (FreeRTOS задачи) 
+
+
+Обрабатывайте
+ ошибки (WiFi, MQTT, NVS, датчики) 
+
+
+Храните
+ учетные данные безопасно, используйте TLS для MQTT 
+
+
+Тестируйте
+ все команды и события 
+
+
+
+8. 
+Таблица команд 
+
+9. 
+Контакты 
+
+
+
+
+Функция  Событие/ Действие  Тип топика  Путь топика (после ...//)  Пример Payload  Напра  
+RFID  Считана метка  tele  rfid/tag  {"tag": "04FF1A", "timestamp": 1678886400123}  Device Client  
+Запрос последней метки  cmnd  rfid/last/get  (пустой)  Client > Device  
+Статус последней метки  stat  rfid/last  {"tag": "04FF1A", "timestamp": 1678886400123} или null  Device Client  
+LED Ring  Установить цвет/яркость  cmnd  led/ring/set  {"num":4,"color":[0,255,0],"br":128} или другой формат  Client > Device  
+Включить паттерн  cmnd  led/ring/pattern  {"name":"rainbow","speed":50,"brightness":200}  Client > Device  
+
+Функция  Событие/ Действие  Тип топика  Путь топика (после ...//)  Пример Payload  Напра  
+Запрос состояния  cmnd  led/ring/get  (пустой)  Client > Device  
+Статус состояния  stat  led/ring/state  {"mode":"pattern","name":"rainbow",...}  Device Client  
+LED Внешн.  Установить цвет/яркость  cmnd  led/external/set  Аналогично ring  Client > Device  
+Включить паттерн  cmnd  led/external/pattern  Аналогично ring  Client > Device  
+Запрос состояния  cmnd  led/external/get  (пустой)  Client > Device  
+Статус состояния  stat  led/external/state  Аналогично ring  Device Client  
+Реле  Управление реле (1шт)  cmnd  relay/1/set (или 2/set)  ON, OFF, TOGGLE  Client > Device  
+Управление группой  cmnd  relay/set  {"relay1":"ON","relay2":"OFF"}  Client > Device  
+PulseTime для реле  cmnd  relay/1/pulsetime (или 2/...)  1000 (ms)  Client > Device  
+Запрос состояния  cmnd  relay/get  (пустой)  Client > Device  
+Статус реле  stat  relay  {"relay1":{"state":"ON","pulsetime_ms":0},...}  Device Client  
+Входы  Изменение входа  tele  input  {"input1":{"state":1,"timestamp":...}}  Device Client  
+Запрос состояния  cmnd  input/get  (пустой)  Client > Device  
+Статус входов  stat  input  {"input1":{"state":1},"input2":{"state":0}}  Device Client  
+Настроить вход  cmnd  input/1/config (или 2/...)  {"mode":"INPUT_PULLUP","inverted":false,"debounce_ms":50}  Client > Device  
+Запрос конфига входов  cmnd  input/config/get  (пустой)  Client > Device  
+Статус конфига входов  stat  input/config  {"input1":{...},"input2":{...}}  Device Client  
+Питание  Телеметрия питания  tele  power  {"source":"battery","voltage":3.8,"level_percent":70,"charging":false}  Device Client  
+Система  Запрос всего статуса  cmnd  status  (пустой)  Client > Device  
+Полный статус  stat  status  См. структуру в документе  Device Client  
+Перезагрузка  cmnd  reboot  (пустой)  Client > Device  
+Запрос возможностей  cmnd  capabilities  (пустой)  Client > Device  
+Статус возможностей  stat  capabilities  {"features":["rfid","led_ring:24","relay:2",... ]}  Device Client  
+Конфиг  Установить конфиг  cmnd  config  См. структуру в документе  Client > Device  
+Запросить конфиг  cmnd  config/get  (пустой)  Client > Device  
+
+Функция  Событие/ Действие  Тип топика  Путь топика (после ...//)  Пример Payload  Напра  
+Статус конфига  stat  config  …без паролей…  Device Client  
+GPIO  Настроить режим GPIO Управление состоянием  cmnd cmnd  gpio/5/mode (пример для GPIO5) gpio/5/set  {"mode":"OUTPUT"} 1, 0, TOGGLE  Client > Device Client > Device  
+Запрос состояния  cmnd  gpio/5/get  (пустой)  Client > Device  
+Статус GPIO  stat  gpio/5  {"state":1}  Device Client  
+Событие входа на GPIO  tele  gpio/5  {"state":0,"timestamp":...}  Device Client  
+Bluetooth  Сканирование BLE  cmnd  bt/scan  {"duration_ms":10000}  Client > Device  
+Статус сканирования  stat  bt/status  {"scanning":true}  Device Client  
+Обнаружено BLE-устр.  tele  bt/device  {"mac":"...","rssi":-70,"name":"..."}  Device Client  
+
+Для вопросов и предложений: [укажите контактную информацию] 
+
+
+
+
+

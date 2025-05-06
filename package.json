@@ -1,0 +1,22 @@
+{
+  "name": "node-red-contrib-esp32-simulator",
+  "version": "0.1.0",
+  "description": "A Node-RED node to simulate ESP32 device with MQTT communication",
+  "author": "Your Name",
+  "license": "MIT",
+  "keywords": [
+    "node-red",
+    "esp32",
+    "simulator",
+    "mqtt",
+    "iot"
+  ],
+  "node-red": {
+    "nodes": {
+      "esp32-simulator": "esp32-simulator.js"
+    }
+  },
+  "dependencies": {
+    "mqtt": "^4.3.7"
+  }
+} 

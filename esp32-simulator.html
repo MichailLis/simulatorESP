@@ -1,0 +1,285 @@
+<script type="text/javascript">
+    RED.nodes.registerType('esp32-simulator', {
+        category: 'iot',
+        color: '#C0DEED',
+        defaults: {
+            name: { value: "" },
+            location: { value: "Home", required: true },
+            deviceType: { value: "RFIDRelay", required: true },
+            deviceId: { value: "ESP32Sim1", required: true },
+            mqttServer: { value: "", type: "mqtt-broker", required: true },
+            generateRandomEvents: { value: false },
+            // RFID settings
+            rfidEnabled: { value: true },
+            rfidAutoGenerate: { value: false },
+            rfidInterval: { value: 60 },
+            rfidTags: { value: '["04FF1A", "ABCDEF", "123456"]' },
+            // LED settings
+            ringLedsEnabled: { value: true },
+            ringLedsCount: { value: 24 },
+            externalLedsEnabled: { value: true },
+            externalLedsCount: { value: 30 },
+            // Relay settings
+            relaysEnabled: { value: true },
+            relayCount: { value: 2 },
+            // Input settings
+            inputsEnabled: { value: true },
+            inputCount: { value: 2 },
+            inputAutoGenerate: { value: false },
+            inputInterval: { value: 30 },
+            // Bluetooth settings
+            bluetoothEnabled: { value: true },
+            bluetoothAutoScan: { value: false },
+            bluetoothDevices: { value: '[{"mac": "AA:BB:CC:DD:EE:FF", "name": "TestDevice", "rssi": -70}]' }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "hardware.svg",
+        label: function() {
+            return this.name || "ESP32 Simulator";
+        },
+        oneditprepare: function() {
+            // Toggle sections based on enabled features
+            $("#node-rfid-settings").toggle(this.rfidEnabled);
+            $("#node-ring-led-settings").toggle(this.ringLedsEnabled);
+            $("#node-ext-led-settings").toggle(this.externalLedsEnabled);
+            $("#node-relay-settings").toggle(this.relaysEnabled);
+            $("#node-input-settings").toggle(this.inputsEnabled);
+            $("#node-bluetooth-settings").toggle(this.bluetoothEnabled);
+            
+            // Setup toggle handlers
+            $("#node-input-rfidEnabled").change(function() {
+                $("#node-rfid-settings").toggle(this.checked);
+            });
+            $("#node-input-ringLedsEnabled").change(function() {
+                $("#node-ring-led-settings").toggle(this.checked);
+            });
+            $("#node-input-externalLedsEnabled").change(function() {
+                $("#node-ext-led-settings").toggle(this.checked);
+            });
+            $("#node-input-relaysEnabled").change(function() {
+                $("#node-relay-settings").toggle(this.checked);
+            });
+            $("#node-input-inputsEnabled").change(function() {
+                $("#node-input-settings").toggle(this.checked);
+            });
+            $("#node-input-bluetoothEnabled").change(function() {
+                $("#node-bluetooth-settings").toggle(this.checked);
+            });
+            
+            // Toggle auto-generation settings based on checkbox
+            $("#node-input-rfidAutoGenerate-container").toggle(this.rfidAutoGenerate);
+            $("#node-input-rfidAutoGenerate").change(function() {
+                $("#node-input-rfidAutoGenerate-container").toggle(this.checked);
+            });
+            
+            $("#node-input-inputAutoGenerate-container").toggle(this.inputAutoGenerate);
+            $("#node-input-inputAutoGenerate").change(function() {
+                $("#node-input-inputAutoGenerate-container").toggle(this.checked);
+            });
+            
+            $("#node-input-bluetoothAutoScan-container").toggle(this.bluetoothAutoScan);
+            $("#node-input-bluetoothAutoScan").change(function() {
+                $("#node-input-bluetoothAutoScan-container").toggle(this.checked);
+            });
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="esp32-simulator">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-mqttServer"><i class="fa fa-server"></i> MQTT Broker</label>
+        <input type="text" id="node-input-mqttServer" placeholder="MQTT Broker">
+    </div>
+    
+    <div class="form-section-header">
+        <h3>Device Identification</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-location"><i class="fa fa-map-marker"></i> Location</label>
+        <input type="text" id="node-input-location" placeholder="Location">
+    </div>
+    <div class="form-row">
+        <label for="node-input-deviceType"><i class="fa fa-microchip"></i> Device Type</label>
+        <input type="text" id="node-input-deviceType" placeholder="Device Type">
+    </div>
+    <div class="form-row">
+        <label for="node-input-deviceId"><i class="fa fa-id-card"></i> Device ID</label>
+        <input type="text" id="node-input-deviceId" placeholder="Device ID">
+    </div>
+    
+    <div class="form-section-header">
+        <h3>Simulation Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-generateRandomEvents"><i class="fa fa-random"></i> Generate Random Events</label>
+        <input type="checkbox" id="node-input-generateRandomEvents" style="width: auto; vertical-align: top;">
+    </div>
+    
+    <!-- RFID Settings -->
+    <div class="form-section-header">
+        <h3>RFID Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-rfidEnabled"><i class="fa fa-wifi"></i> Enable RFID</label>
+        <input type="checkbox" id="node-input-rfidEnabled" style="width: auto; vertical-align: top;">
+    </div>
+    <div id="node-rfid-settings">
+        <div class="form-row">
+            <label for="node-input-rfidAutoGenerate"><i class="fa fa-refresh"></i> Auto Generate</label>
+            <input type="checkbox" id="node-input-rfidAutoGenerate" style="width: auto; vertical-align: top;">
+        </div>
+        <div id="node-input-rfidAutoGenerate-container">
+            <div class="form-row">
+                <label for="node-input-rfidInterval"><i class="fa fa-clock-o"></i> Interval (s)</label>
+                <input type="number" id="node-input-rfidInterval" min="1">
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="node-input-rfidTags"><i class="fa fa-list"></i> Available Tags</label>
+            <input type="text" id="node-input-rfidTags" placeholder='["tag1", "tag2"]'>
+        </div>
+    </div>
+    
+    <!-- LED Ring Settings -->
+    <div class="form-section-header">
+        <h3>LED Ring Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-ringLedsEnabled"><i class="fa fa-circle"></i> Enable Ring LEDs</label>
+        <input type="checkbox" id="node-input-ringLedsEnabled" style="width: auto; vertical-align: top;">
+    </div>
+    <div id="node-ring-led-settings">
+        <div class="form-row">
+            <label for="node-input-ringLedsCount"><i class="fa fa-list-ol"></i> LED Count</label>
+            <input type="number" id="node-input-ringLedsCount" min="1" max="50">
+        </div>
+    </div>
+    
+    <!-- External LED Settings -->
+    <div class="form-section-header">
+        <h3>External LED Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-externalLedsEnabled"><i class="fa fa-circle-o"></i> Enable External LEDs</label>
+        <input type="checkbox" id="node-input-externalLedsEnabled" style="width: auto; vertical-align: top;">
+    </div>
+    <div id="node-ext-led-settings">
+        <div class="form-row">
+            <label for="node-input-externalLedsCount"><i class="fa fa-list-ol"></i> LED Count</label>
+            <input type="number" id="node-input-externalLedsCount" min="1" max="300">
+        </div>
+    </div>
+    
+    <!-- Relay Settings -->
+    <div class="form-section-header">
+        <h3>Relay Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-relaysEnabled"><i class="fa fa-toggle-on"></i> Enable Relays</label>
+        <input type="checkbox" id="node-input-relaysEnabled" style="width: auto; vertical-align: top;">
+    </div>
+    <div id="node-relay-settings">
+        <div class="form-row">
+            <label for="node-input-relayCount"><i class="fa fa-list-ol"></i> Relay Count</label>
+            <input type="number" id="node-input-relayCount" min="1" max="2">
+        </div>
+    </div>
+    
+    <!-- Input Settings -->
+    <div class="form-section-header">
+        <h3>Input Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-inputsEnabled"><i class="fa fa-sign-in"></i> Enable Inputs</label>
+        <input type="checkbox" id="node-input-inputsEnabled" style="width: auto; vertical-align: top;">
+    </div>
+    <div id="node-input-settings">
+        <div class="form-row">
+            <label for="node-input-inputCount"><i class="fa fa-list-ol"></i> Input Count</label>
+            <input type="number" id="node-input-inputCount" min="1" max="2">
+        </div>
+        <div class="form-row">
+            <label for="node-input-inputAutoGenerate"><i class="fa fa-refresh"></i> Auto Change</label>
+            <input type="checkbox" id="node-input-inputAutoGenerate" style="width: auto; vertical-align: top;">
+        </div>
+        <div id="node-input-inputAutoGenerate-container">
+            <div class="form-row">
+                <label for="node-input-inputInterval"><i class="fa fa-clock-o"></i> Interval (s)</label>
+                <input type="number" id="node-input-inputInterval" min="1">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bluetooth Settings -->
+    <div class="form-section-header">
+        <h3>Bluetooth Settings</h3>
+    </div>
+    <div class="form-row">
+        <label for="node-input-bluetoothEnabled"><i class="fa fa-bluetooth"></i> Enable Bluetooth</label>
+        <input type="checkbox" id="node-input-bluetoothEnabled" style="width: auto; vertical-align: top;">
+    </div>
+    <div id="node-bluetooth-settings">
+        <div class="form-row">
+            <label for="node-input-bluetoothAutoScan"><i class="fa fa-search"></i> Auto Scan</label>
+            <input type="checkbox" id="node-input-bluetoothAutoScan" style="width: auto; vertical-align: top;">
+        </div>
+        <div id="node-input-bluetoothAutoScan-container">
+            <div class="form-row">
+                <label for="node-input-bluetoothDevices"><i class="fa fa-list"></i> Simulated Devices</label>
+                <input type="text" id="node-input-bluetoothDevices" placeholder='[{"mac":"AA:BB:CC:DD:EE:FF","name":"TestDevice","rssi":-70}]'>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="esp32-simulator">
+    <p>Нода Node-RED, которая эмулирует устройство ESP32 с поддержкой RFID, светодиодов, реле и других функций.</p>
+    
+    <h3>Входы</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>Команда для управления эмулируемым устройством</dd>
+    </dl>
+    
+    <h3>Выходы</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd>Ответ от эмулируемого устройства</dd>
+    </dl>
+    
+    <h3>Детали</h3>
+    <p>Эта нода эмулирует устройство ESP32, которое взаимодействует через MQTT. Она может использоваться для тестирования и разработки приложений без необходимости в физическом оборудовании.</p>
+    
+    <p>Нода эмулирует:</p>
+    <ul>
+        <li>Считывание RFID-меток</li>
+        <li>Управление светодиодами (кольцо и внешняя лента)</li>
+        <li>Релейные выходы</li>
+        <li>Цифровые входы</li>
+        <li>Bluetooth функциональность</li>
+        <li>Системные функции</li>
+    </ul>
+    
+    <h3>Топики MQTT</h3>
+    <p>Нода следует структуре топиков MQTT, определенной в документации:</p>
+    <ul>
+        <li><code>cmnd/&lt;location&gt;/&lt;device_type&gt;/&lt;device_id&gt;/#</code> - Команды устройству</li>
+        <li><code>stat/&lt;location&gt;/&lt;device_type&gt;/&lt;device_id&gt;/#</code> - Ответы о статусе</li>
+        <li><code>tele/&lt;location&gt;/&lt;device_type&gt;/&lt;device_id&gt;/#</code> - Телеметрия и события</li>
+    </ul>
+    
+    <h3>Ссылки</h3>
+    <ul>
+        <li><a href="https://github.com/yourusername/node-red-contrib-esp32-simulator" target="_blank">Документация на GitHub</a></li>
+    </ul>
+</script> 
